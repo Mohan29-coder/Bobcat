@@ -2,104 +2,162 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Register - StakePro</title>
-    <link rel="stylesheet" href="style.css" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Register — StakeVault</title>
     <style>
         body {
-            margin: 0;
-            font-family: "Poppins", sans-serif;
-            background: linear-gradient(180deg, #2b78ff, #4f9bff);
-            color: #fff;
+            font-family: Inter, system-ui, Poppins;
+            margin: 28px;
+            background: #f4f7fb
         }
         
-        .container {
-            width: 350px;
-            margin: 100px auto;
+        .card {
+            max-width: 420px;
+            margin: 0 auto;
+            padding: 18px;
             background: #fff;
-            color: #111;
-            padding: 30px;
-            border-radius: 18px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+            box-shadow: 0 8px 30px rgba(2, 6, 23, .06)
         }
         
-        h2 {
-            text-align: center;
-            color: #2b78ff;
+        label {
+            display: block;
+            margin-top: 8px;
+            font-weight: 600
         }
         
         input {
             width: 100%;
             padding: 10px;
-            margin: 8px 0;
-            border: 1px solid #cfd9f0;
-            border-radius: 10px;
+            margin-top: 6px;
+            border-radius: 8px;
+            border: 1px solid #e6edf8
         }
         
         button {
             width: 100%;
-            background: #2b78ff;
-            color: white;
-            border: none;
+            margin-top: 12px;
             padding: 10px;
-            border-radius: 10px;
+            border-radius: 8px;
+            border: none;
+            background: #1e90ff;
+            color: #fff;
             cursor: pointer;
-            font-weight: 500;
+            font-weight: 700
         }
         
-        button:hover {
-            opacity: 0.9;
-        }
-        
-        p {
-            text-align: center;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-        
-        a {
-            color: #2b78ff;
-            text-decoration: none;
+        .small {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 8px
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h2>Create Account</h2>
-        <input type="text" id="username" placeholder="Enter Username" />
-        <input type="password" id="password" placeholder="Enter Password" />
-        <button onclick="register()">Register</button>
-        <p>Already have an account? <a href="login.html">Login here</a></p>
+    <div class="card">
+        <h2>Create an account</h2>
+
+        <label for="username">Username</label>
+        <input id="username" autocomplete="username" />
+
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="new-password" />
+
+        <label for="refCode">Referral code (optional)</label>
+        <input id="refCode" placeholder="Enter referral code or leave empty" />
+
+        <button id="registerBtn">Register</button>
+        <div class="small">If you used a referral link the code will be applied automatically. You can also paste a referral code above.</div>
     </div>
 
     <script>
-        function register() {
-            let username = document.getElementById("username").value.trim();
-            let password = document.getElementById("password").value.trim();
-
-            if (!username || !password) {
-                alert("Nanba username & password both enter pannunga 😅");
-                return;
-            }
-
-            let users = JSON.parse(localStorage.getItem("users") || "[]");
-
-            // Check duplicate username
-            if (users.find(u => u.username === username)) {
-                alert("Username already exists da nanba 😅");
-                return;
-            }
-
-            users.push({
-                username,
-                password
-            });
-            localStorage.setItem("users", JSON.stringify(users));
-            alert("Account created successfully ✅");
-            window.location.href = "login.html";
+        // localStorage helpers
+        function getUsers() {
+            return JSON.parse(localStorage.getItem('users') || '[]');
         }
+
+        function saveUsers(u) {
+            localStorage.setItem('users', JSON.stringify(u));
+        }
+
+        function genAffiliateCode() {
+            return 'AFF-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6).toUpperCase();
+        }
+
+        // capture ?ref=CODE in URL so visitors using links get pre-filled pendingReferral
+        (function captureRef() {
+            try {
+                const p = new URLSearchParams(location.search);
+                const ref = p.get('ref');
+                if (ref) localStorage.setItem('pendingReferral', ref);
+            } catch (e) {}
+        })();
+
+        document.getElementById('registerBtn').addEventListener('click', function() {
+            const username = (document.getElementById('username').value || '').trim();
+            const password = (document.getElementById('password').value || '').trim();
+            const manualRef = (document.getElementById('refCode').value || '').trim();
+            if (!username || !password) {
+                alert('Enter username and password');
+                return;
+            }
+
+            const users = getUsers();
+            if (users.some(u => u.username === username)) {
+                alert('Username already taken');
+                return;
+            }
+
+            // determine referral code: manual input takes precedence, otherwise pendingReferral from URL
+            const pendingFromUrl = localStorage.getItem('pendingReferral');
+            const appliedRefCode = manualRef || pendingFromUrl || null;
+
+            const affiliateCode = genAffiliateCode();
+            const newUser = {
+                username: username,
+                password: password,
+                affiliateCode: affiliateCode,
+                referredBy: appliedRefCode || null,
+                createdAt: new Date().toISOString(),
+                balance: 0,
+                referrals: []
+            };
+
+            users.push(newUser);
+
+            // if referral code matches an existing user, add referral entry to referrer's referrals (deposited:false)
+            if (appliedRefCode) {
+                const refIdx = users.findIndex(u => u.affiliateCode === appliedRefCode);
+                if (refIdx !== -1) {
+                    users[refIdx].referrals = users[refIdx].referrals || [];
+                    // avoid duplicate entries for same username
+                    const exists = users[refIdx].referrals.some(r => r.username === username);
+                    if (!exists) {
+                        users[refIdx].referrals.push({
+                            username: username,
+                            date: newUser.createdAt,
+                            deposited: false,
+                            depositAt: null,
+                            amount: 0
+                        });
+                    }
+                } else {
+                    // optional: notify that entered referral code is not found (still allow registration)
+                    // alert('Referral code not recognized; registering without referrer.');
+                }
+            }
+
+            saveUsers(users);
+            // clear pendingReferral after applied
+            if (pendingFromUrl) localStorage.removeItem('pendingReferral');
+
+            // log in and redirect
+            localStorage.setItem('loggedUser', username);
+            alert('Registered successfully. You are now logged in.');
+            location.href = 'dashboard.html';
+        });
     </script>
 </body>
 
