@@ -1,0 +1,510 @@
+<!-- ...existing code... -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet | StakeVault</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: #f5f8ff;
+            color: #222;
+        }
+        
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 220px;
+            height: 100vh;
+            background: #1e90ff;
+            color: white;
+            padding: 20px;
+        }
+        
+        .sidebar h2 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .sidebar a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            margin: 12px 0;
+            padding: 8px;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+        
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: white;
+            color: #1e90ff;
+        }
+        
+        .wallet-container {
+            margin-left: 240px;
+            padding: 40px;
+        }
+        
+        .wallet-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .wallet-tabs .tab {
+            background: #fff;
+            border: 1px solid #1e90ff;
+            color: #1e90ff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        
+        .wallet-tabs .tab.active {
+            background: #1e90ff;
+            color: white;
+        }
+        
+        .balance-block {
+            text-align: right;
+            font-weight: 700;
+            color: #1e90ff;
+            min-width: 220px;
+        }
+        
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .address-copy {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0 20px 0;
+        }
+        
+        .address-copy input {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 8px;
+            border-radius: 8px;
+            background: #f5f8ff;
+        }
+        
+        .address-copy button {
+            background: #1e90ff;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        
+        .confirm-box input {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .confirm-box button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            background: #1e90ff;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        
+        .confirm-box button:hover {
+            background: #187bcd;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        th,
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+            vertical-align: top;
+        }
+        
+        th {
+            background: #f0f6ff;
+            color: #1e90ff;
+        }
+        
+        .admin-note {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 10px;
+            border-radius: 6px;
+            color: #856404;
+            margin-bottom: 12px;
+        }
+        
+        .small-btn {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .approve-btn {
+            background: #28a745;
+            color: white;
+        }
+        
+        .reject-btn {
+            background: #dc3545;
+            color: white;
+            margin-left: 6px;
+        }
+        
+        .meta-line {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <h2>StakeVault</h2>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="wallet.html" class="active">Wallet</a>
+        <a href="staking.html">Staking Plans</a>
+        <a href="affiliate.html">Affiliate</a>
+        <a href="#">Logout</a>
+    </div>
+
+    <div class="wallet-container">
+        <div class="wallet-tabs">
+            <div>
+                <button class="tab active" data-tab="deposit">Deposit</button>
+                <button class="tab" data-tab="withdraw">Withdraw</button>
+                <button class="tab" data-tab="history">History</button>
+            </div>
+            <div class="balance-block">
+                Balance: $<span id="balanceDisplay">0.00</span> • Available: $<span id="availableDisplay">0.00</span>
+            </div>
+        </div>
+
+        <!-- Deposit -->
+        <div id="deposit" class="tab-content active">
+            <h3>Deposit USDT (BSC)</h3>
+            <p>Send only <b>USDT (BEP-20)</b> to the address below.</p>
+            <label>Your Deposit Address:</label>
+            <div class="address-copy">
+                <input type="text" id="fixedAddress" value="0xABCD1234EFGH5678IJKL9101MNOPQRST" readonly>
+                <button onclick="copyAddress()">Copy</button>
+            </div>
+            <p><b>Note:</b> Deposits must be verified by an admin before they are credited to your account.</p>
+
+            <!-- Manual deposit form -->
+            <hr>
+            <h4>Request Manual Deposit (submit for admin verification)</h4>
+            <div class="confirm-box" style="max-width:420px;">
+                <label>Amount to request (USDT)</label>
+                <input type="number" id="manualAmount" placeholder="Enter amount" min="1" step="0.01">
+                <label>Transaction ID / TxHash (from BSC)</label>
+                <input type="text" id="manualTxHash" placeholder="0x..." maxlength="100">
+                <button onclick="requestDeposit()">Submit Deposit Request</button>
+            </div>
+            <p class="meta-line">Provide the blockchain transaction id so admin can verify the on-chain transfer.</p>
+        </div>
+
+        <!-- Withdraw -->
+        <div id="withdraw" class="tab-content">
+            <h3>Withdraw Funds</h3>
+            <div class="confirm-box" style="max-width:420px;">
+                <label>Withdrawal Wallet Address</label>
+                <input type="text" id="withAddress" placeholder="Enter your BEP-20 wallet">
+                <label>Withdrawal Amount (USDT)</label>
+                <input type="number" id="withAmount" placeholder="Min 5 USDT">
+                <button onclick="withdrawFunds()">Request Withdrawal</button>
+            </div>
+            <p style="margin-top:8px; color:#666;">Withdrawals are processed after admin verification. Pending withdrawals reduce available balance.</p>
+        </div>
+
+        <!-- History -->
+        <div id="history" class="tab-content">
+            <h3>Transaction History</h3>
+            <div id="adminNotice" class="admin-note" style="display:none;">
+                Admin mode active. Approve or reject pending deposits and withdrawals below.
+            </div>
+            <table id="txTable">
+                <tr>
+                    <th>Type</th>
+                    <th>Amount (USDT)</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>TxHash</th>
+                    <th>Wallet</th>
+                    <th id="actionsHeader" style="display:none">Actions</th>
+                </tr>
+            </table>
+            <p style="margin-top:10px; color:#666;">Tip: Admin mode = open this page with <code>?admin=1</code> to manage pending transactions.</p>
+        </div>
+    </div>
+
+    <script>
+        const isAdmin = new URLSearchParams(location.search).get('admin') === '1';
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        function copyAddress() {
+            const addr = document.getElementById("fixedAddress");
+            try {
+                navigator.clipboard.writeText(addr.value);
+                alert("Deposit address copied!");
+            } catch (e) {
+                addr.select();
+                document.execCommand('copy');
+                alert("Deposit address copied!");
+            }
+        }
+
+        // Basic balance helpers
+        function getBalance() {
+            return parseFloat(localStorage.getItem("balance") || "0");
+        }
+
+        function setBalance(value) {
+            localStorage.setItem("balance", parseFloat(value).toFixed(2));
+            renderBalances();
+        }
+
+        // Sum of pending withdraw amounts (not yet approved)
+        function getPendingWithdrawalsTotal() {
+            const txs = JSON.parse(localStorage.getItem("transactions") || "[]");
+            return txs.reduce((sum, t) => {
+                if (t.type === 'Withdraw' && t.status === 'Pending') return sum + parseFloat(t.amount);
+                return sum;
+            }, 0);
+        }
+
+        function getAvailableBalance() {
+            return Math.max(0, getBalance() - getPendingWithdrawalsTotal());
+        }
+
+        function renderBalances() {
+            document.getElementById("balanceDisplay").innerText = getBalance().toFixed(2);
+            document.getElementById("availableDisplay").innerText = getAvailableBalance().toFixed(2);
+        }
+
+        // New behavior: deposit requests are saved as Pending and require admin approval to credit balance
+        function requestDeposit() {
+            const amt = parseFloat(document.getElementById("manualAmount").value);
+            const txHash = document.getElementById("manualTxHash").value.trim();
+            if (isNaN(amt) || amt <= 0) {
+                alert("Please enter a valid amount to request.");
+                return;
+            }
+            if (!txHash) {
+                alert("Please provide the transaction ID (txHash) for verification.");
+                return;
+            }
+            const transactions = JSON.parse(localStorage.getItem("transactions") || "[]");
+
+            const tx = {
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+                type: "Deposit",
+                amount: parseFloat(amt.toFixed(2)),
+                status: "Pending",
+                date: new Date().toISOString(),
+                meta: {
+                    txHash
+                }
+            };
+
+            transactions.push(tx);
+            localStorage.setItem("transactions", JSON.stringify(transactions));
+
+            alert(`Deposit request of ${tx.amount} USDT submitted for admin verification.`);
+            document.getElementById("manualAmount").value = "";
+            document.getElementById("manualTxHash").value = "";
+            loadHistory();
+            renderBalances();
+        }
+
+        // Withdraw request: create pending transaction only if available balance covers the request
+        function withdrawFunds() {
+            const wallet = document.getElementById("withAddress").value.trim();
+            const amount = parseFloat(document.getElementById("withAmount").value);
+            if (!wallet || isNaN(amount) || amount < 5) {
+                alert("Please enter a valid address and minimum 5 USDT amount.");
+                return;
+            }
+
+            const available = getAvailableBalance();
+            if (amount > available) {
+                alert(`Insufficient funds. Available to withdraw: ${available.toFixed(2)} USDT.`);
+                return;
+            }
+
+            const transactions = JSON.parse(localStorage.getItem("transactions") || "[]");
+
+            const tx = {
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+                type: "Withdraw",
+                amount: parseFloat(amount.toFixed(2)),
+                status: "Pending",
+                date: new Date().toISOString(),
+                meta: {
+                    wallet
+                }
+            };
+
+            transactions.push(tx);
+            localStorage.setItem("transactions", JSON.stringify(transactions));
+
+            alert(`${tx.amount} USDT withdrawal requested and is pending admin approval.`);
+            document.getElementById("withAddress").value = "";
+            document.getElementById("withAmount").value = "";
+            loadHistory();
+            renderBalances();
+        }
+
+        // Admin actions: approve or reject pending transactions (both Deposit and Withdraw)
+        function approveTransaction(id) {
+            const transactions = JSON.parse(localStorage.getItem("transactions") || "[]");
+            const idx = transactions.findIndex(t => t.id === id);
+            if (idx === -1) return alert("Transaction not found.");
+
+            const tx = transactions[idx];
+            if (tx.status !== "Pending") return alert("Only pending transactions can be approved.");
+
+            if (tx.type === "Deposit") {
+                // credit balance
+                const balance = getBalance();
+                const newBalance = balance + parseFloat(tx.amount);
+                localStorage.setItem("balance", newBalance.toFixed(2));
+
+                transactions[idx].status = "Completed";
+                localStorage.setItem("transactions", JSON.stringify(transactions));
+                alert(`Deposit of ${tx.amount} USDT approved and credited.`);
+                loadHistory();
+                renderBalances();
+                return;
+            }
+
+            if (tx.type === "Withdraw") {
+                // check available balance again and deduct
+                const balance = getBalance();
+                if (balance < tx.amount) {
+                    return alert("Insufficient balance to approve withdrawal.");
+                }
+                const newBalance = balance - parseFloat(tx.amount);
+                localStorage.setItem("balance", newBalance.toFixed(2));
+
+                transactions[idx].status = "Completed";
+                localStorage.setItem("transactions", JSON.stringify(transactions));
+                alert(`Withdrawal of ${tx.amount} USDT approved and processed.`);
+                loadHistory();
+                renderBalances();
+                return;
+            }
+
+            alert("Unsupported transaction type.");
+        }
+
+        function rejectTransaction(id) {
+            const transactions = JSON.parse(localStorage.getItem("transactions") || "[]");
+            const idx = transactions.findIndex(t => t.id === id);
+            if (idx === -1) return alert("Transaction not found.");
+
+            if (transactions[idx].status !== "Pending") return alert("Only pending transactions can be rejected.");
+            transactions[idx].status = "Rejected";
+            localStorage.setItem("transactions", JSON.stringify(transactions));
+            alert("Transaction rejected.");
+            loadHistory();
+            renderBalances();
+        }
+
+        function loadHistory() {
+            const txTable = document.getElementById("txTable");
+            // header row reset with TxHash and Wallet columns
+            txTable.innerHTML = `<tr>
+                <th>Type</th>
+                <th>Amount (USDT)</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>TxHash</th>
+                <th>Wallet</th>
+                <th id="actionsHeader" style="${isAdmin ? '' : 'display:none'}">Actions</th>
+            </tr>`;
+            const transactions = JSON.parse(localStorage.getItem("transactions") || "[]");
+            if (transactions.length === 0) {
+                txTable.innerHTML += `<tr><td colspan="${isAdmin ? 7 : 6}" style="text-align:center; color:#666;">No transactions yet.</td></tr>`;
+                return;
+            }
+            transactions.slice().reverse().forEach(tx => {
+                const date = new Date(tx.date).toLocaleString();
+                let actions = '';
+                if (isAdmin && tx.status === 'Pending') {
+                    actions = `<button class="small-btn approve-btn" onclick="approveTransaction('${tx.id}')">Approve</button>
+                               <button class="small-btn reject-btn" onclick="rejectTransaction('${tx.id}')">Reject</button>`;
+                }
+                const txHash = (tx.meta && tx.meta.txHash) ? tx.meta.txHash : '';
+                const wallet = (tx.meta && tx.meta.wallet) ? tx.meta.wallet : '';
+                txTable.innerHTML += `<tr>
+                    <td>${tx.type}</td>
+                    <td>${parseFloat(tx.amount).toFixed(2)}</td>
+                    <td>${tx.status}</td>
+                    <td>${date}</td>
+                    <td class="meta-line">${txHash}</td>
+                    <td class="meta-line">${wallet}</td>
+                    <td>${isAdmin ? actions : ''}</td>
+                </tr>`;
+            });
+        }
+
+        // initialize on load
+        if (isAdmin) {
+            document.getElementById('adminNotice').style.display = 'block';
+        }
+        renderBalances();
+        loadHistory();
+    </script>
+</body>
+
+</html>

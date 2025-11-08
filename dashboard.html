@@ -1,0 +1,161 @@
+// ...existing code...
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - USDT Staking</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* small table tweaks to align recent transactions properly */
+        
+        #recentTxn {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+        
+        #recentTxn th,
+        #recentTxn td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+        
+        #recentTxn th {
+            background: #f7fbff;
+            color: #007bff;
+            text-align: left;
+            font-weight: 600;
+        }
+        /* numeric alignment */
+        
+        .tx-amount {
+            text-align: right;
+            font-weight: 700;
+            color: #111;
+        }
+        
+        .tx-status {
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .tx-date {
+            text-align: left;
+            color: #555;
+            white-space: nowrap;
+        }
+        
+        .tx-meta {
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+        }
+        
+        .no-data {
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>USDT <span>Stake</span></h2>
+        <ul>
+            <li><a href="dashboard.html" class="active">🏠 Dashboard</a></li>
+            <li><a href="wallet.html">💰 Wallet</a></li>
+            <li><a href="staking.html">📈 Staking Plans</a></li>
+            <li><a href="affiliate.html">🤝 Affiliate</a></li>
+            <li><a href="login.html" class="logout">🚪 Logout</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header>
+            <h1>Dashboard</h1>
+            <p>Welcome to your staking dashboard. Manage and monitor your USDT earnings.</p>
+        </header>
+
+        <!-- Account Balance / Actions -->
+        <section class="card">
+            <h2>Available Balance</h2>
+            <h1 id="availableBalance" style="color:#007bff;">$0.00</h1>
+            <div style="display:flex; gap:10px; margin-top:12px;">
+                <button onclick="window.location.href='wallet.html?mode=deposit'">Deposit</button>
+                <button onclick="window.location.href='wallet.html?mode=withdraw'">Withdraw</button>
+            </div>
+        </section>
+
+        <!-- Quick Actions -->
+        <section class="card">
+            <h2>Quick Actions</h2>
+            <div class="action-buttons" style="display:flex; gap:15px; flex-wrap:wrap;">
+                <button onclick="window.location.href='staking.html'">Start New Stake</button>
+                <button onclick="window.location.href='affiliate.html'">Check Referrals</button>
+            </div>
+        </section>
+
+        <!-- Recent Transactions -->
+        <section class="card">
+            <h2>Recent Transactions</h2>
+            <table id="recentTxn">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th class="tx-amount">Amount (USDT)</th>
+                        <th class="tx-status">Status</th>
+                        <th class="tx-date">Date</th>
+                        <th>TxHash</th>
+                        <th>Wallet</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+    </div>
+
+    <script>
+        // Load general balance and transactions (no wallet-specific connection)
+        const balanceEl = document.getElementById("availableBalance");
+        const txTbody = document.querySelector("#recentTxn tbody");
+
+        // Use a general 'balance' key (not tied to a wallet address)
+        const balance = parseFloat(localStorage.getItem("balance")) || 0;
+        const transactions = JSON.parse(localStorage.getItem("transactions") || "[]");
+
+        balanceEl.innerText = `$${balance.toFixed(2)}`;
+
+        // Load recent 5 transactions (properly aligned and with TxHash/Wallet columns)
+        txTbody.innerHTML = "";
+        if (transactions.length === 0) {
+            const row = document.createElement("tr");
+            row.innerHTML = `<td class="no-data" colspan="6">No transactions yet.</td>`;
+            txTbody.appendChild(row);
+        } else {
+            transactions.slice(-5).reverse().forEach(tx => {
+                const txHash = (tx.meta && tx.meta.txHash) ? tx.meta.txHash : "";
+                const wallet = (tx.meta && tx.meta.wallet) ? tx.meta.wallet : "";
+                const tr = document.createElement("tr");
+
+                tr.innerHTML = `
+          <td>${tx.type}</td>
+          <td class="tx-amount">$${parseFloat(tx.amount).toFixed(2)}</td>
+          <td class="tx-status">${tx.status}</td>
+          <td class="tx-date">${new Date(tx.date).toLocaleString()}</td>
+          <td class="tx-meta">${txHash}</td>
+          <td class="tx-meta">${wallet}</td>
+        `;
+                txTbody.appendChild(tr);
+            });
+        }
+    </script>
+
+</body>
+
+</html>

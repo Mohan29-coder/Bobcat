@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Affiliate - USDT Staking</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .main-content header p {
+            margin-top: 6px;
+            color: #555;
+        }
+        
+        .affiliate-section {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .affiliate-section h2 {
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+        
+        .ref-box {
+            background: #f0f7ff;
+            padding: 12px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+        
+        .ref-box input {
+            width: 85%;
+            border: none;
+            background: transparent;
+            color: #007bff;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .ref-box button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .ref-box button:hover {
+            background: #005fcc;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th,
+        td {
+            border: 1px solid #cfe2ff;
+            padding: 10px;
+            text-align: left;
+            font-size: 14px;
+        }
+        
+        th {
+            background: #f0f7ff;
+            color: #007bff;
+        }
+        
+        td {
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>USDT <span>Stake</span></h2>
+        <ul>
+            <li><a href="dashboard.html">🏠 Dashboard</a></li>
+            <li><a href="wallet.html">💰 Wallet</a></li>
+            <li><a href="staking.html">📈 Staking Plans</a></li>
+            <li><a href="affiliate.html" class="active">🤝 Affiliate</a></li>
+            <li><a href="login.html" class="logout">🚪 Logout</a></li>
+        </ul>
+    </div>
+
+    <!-- Main -->
+    <div class="main-content">
+        <header>
+            <h1>Affiliate Program</h1>
+            <p>Earn 10% commission from your referrals’ staking plans.</p>
+        </header>
+
+        <div class="affiliate-section">
+            <h2>Your Referral Link</h2>
+            <div class="ref-box">
+                <input type="text" id="refLink" readonly />
+                <button onclick="copyRef()">Copy</button>
+            </div>
+            <p>Share this link with your friends. When they stake, you get 10% commission automatically credited to your wallet balance.</p>
+        </div>
+
+        <div class="affiliate-section">
+            <h2>Commission History</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Referral Wallet</th>
+                        <th>Plan Amount</th>
+                        <th>Commission (10%)</th>
+                    </tr>
+                </thead>
+                <tbody id="commissionTable">
+                    <tr>
+                        <td colspan="4">No commissions yet</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const wallet = localStorage.getItem("walletAddress") || "";
+        const balanceKey = (w) => "balance_" + w;
+        const commKey = (w) => "commissions_" + w;
+        const refInput = document.getElementById("refLink");
+        const tableBody = document.getElementById("commissionTable");
+
+        // Generate referral link
+        function loadRefLink() {
+            if (!wallet) {
+                refInput.value = "Please connect wallet first";
+                return;
+            }
+            refInput.value = `https://yourwebsite.com/register.html?ref=${wallet}`;
+        }
+
+        function copyRef() {
+            if (!wallet) return alert("Connect wallet first!");
+            refInput.select();
+            document.execCommand("copy");
+            alert("Referral link copied ✅");
+        }
+
+        // Load commission history
+        function loadCommissions() {
+            const data = JSON.parse(localStorage.getItem(commKey(wallet)) || "[]");
+            if (data.length === 0) return;
+            tableBody.innerHTML = "";
+            data.forEach((c) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+          <td>${new Date(c.date).toLocaleString()}</td>
+          <td>${c.refWallet}</td>
+          <td>${c.planAmount} USDT</td>
+          <td>${c.commission} USDT</td>`;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Example credit simulation (used by staking.js when referral detected)
+        function addCommission(refWallet, planAmount) {
+            if (!refWallet || !planAmount) return;
+            const comm = (planAmount * 0.1).toFixed(2);
+            const list = JSON.parse(localStorage.getItem(commKey(refWallet)) || "[]");
+            list.push({
+                refWallet: wallet,
+                planAmount,
+                commission: comm,
+                date: new Date()
+            });
+            localStorage.setItem(commKey(refWallet), JSON.stringify(list));
+
+            // Update referrer balance
+            let bal = parseFloat(localStorage.getItem(balanceKey(refWallet)) || "0");
+            bal += parseFloat(comm);
+            localStorage.setItem(balanceKey(refWallet), bal.toFixed(2));
+        }
+
+        loadRefLink();
+        loadCommissions();
+    </script>
+</body>
+
+</html>
