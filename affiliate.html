@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -12,7 +13,7 @@
         }
         
         body {
-            font-family: Poppins, system-ui, Segoe UI, Roboto;
+            font-family: Inter, system-ui, Segoe UI, Roboto, Poppins;
             margin: 24px;
             background: #f4f7fb;
             color: #0f172a
@@ -28,7 +29,7 @@
         }
         
         h1 {
-            margin: 0 0 6px
+            margin: 0 0 8px
         }
         
         .muted {
@@ -41,7 +42,8 @@
             align-items: center
         }
         
-        input[type=text] {
+        input[type=text],
+        textarea {
             flex: 1;
             padding: 10px;
             border-radius: 8px;
@@ -81,7 +83,13 @@
         td {
             padding: 8px;
             border-bottom: 1px solid #eee;
-            text-align: left
+            text-align: left;
+            vertical-align: middle
+        }
+        
+        .small {
+            font-size: 13px;
+            color: var(--muted)
         }
         
         .qr {
@@ -93,11 +101,6 @@
             display: flex;
             align-items: center;
             justify-content: center
-        }
-        
-        .small {
-            font-size: 13px;
-            color: var(--muted)
         }
         
         @media(max-width:720px) {
@@ -112,10 +115,10 @@
 <body>
     <div class="card">
         <h1>Affiliate Program</h1>
-        <div class="small muted">Share your referral link — earn rewards when your referrals register and deposit.</div>
+        <div class="small muted">Share your referral link. When someone registers with your code and later completes a deposit, they are listed below.</div>
 
         <div id="notLogged" class="section" style="display:none">
-            <p class="muted">You must be logged in to access affiliate tools.</p>
+            <p class="muted">You must be logged in to view and share your affiliate tools.</p>
             <div style="display:flex;gap:8px">
                 <button class="btn-primary" id="goRegister">Register</button>
                 <button class="btn-ghost" id="goLogin">Login</button>
@@ -130,17 +133,18 @@
                     <button class="btn-primary" id="copyBtn">Copy</button>
                     <button class="btn-ghost" id="shareBtn">Share</button>
                 </div>
-                <div class="small section">Tip: Add ?ref=AFFCODE to your promotional links or share via social buttons below.</div>
+                <div class="small section">Tip: share this link. Visitors who register with it will be attributed to you after they deposit.</div>
             </div>
 
             <div class="section row" style="align-items:flex-start">
                 <div style="flex:1">
                     <h3 style="margin:0 0 8px">Quick share</h3>
                     <div style="display:flex;gap:8px;flex-wrap:wrap">
-                        <button id="tw" class="btn-ghost">Share on Twitter</button>
-                        <button id="tg" class="btn-ghost">Share on Telegram</button>
+                        <button id="tw" class="btn-ghost">Twitter</button>
+                        <button id="tg" class="btn-ghost">Telegram</button>
                         <button id="wa" class="btn-ghost">WhatsApp</button>
-                        <button id="copyMsg" class="btn-ghost">Copy Promo Message</button>
+                        <button id="copyMsg" class="btn-ghost">Copy Promo</button>
+                        <button id="refreshBtn" class="btn-ghost">Refresh</button>
                     </div>
 
                     <div class="section">
@@ -159,7 +163,7 @@
             </div>
 
             <div class="section">
-                <h3 style="margin:0 0 6px">Referrals</h3>
+                <h3 style="margin:0 0 6px">Referred users</h3>
                 <div class="small muted" id="statsLine">Total referrals: 0 • Referred deposits: 0</div>
 
                 <table id="refTable" class="section">
@@ -168,6 +172,8 @@
                             <th>Username</th>
                             <th>Registered</th>
                             <th>Deposited?</th>
+                            <th>Amount</th>
+                            <th>Deposit Date</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -177,15 +183,61 @@
     </div>
 
     <script>
-        // Minimal affiliate page logic (client-side demo)
-        const goRegister = document.getElementById('goRegister');
-        const goLogin = document.getElementById('goLogin');
-        if (goRegister) goRegister.addEventListener('click', () => location.href = 'register.html');
-        if (goLogin) goLogin.addEventListener('click', () => location.href = 'login.html');
+        // Affiliate page (client-only demo).
+        // Data model (localStorage):
+        // users: [{ username, password, affiliateCode, referredBy, createdAt, balance }]
+        // transactions: [{ id, type:'Deposit'|'Withdraw', amount, status:'Pending'|'Completed'|'Rejected', date, meta:{ username, txHash, wallet } }]
 
-        const logged = localStorage.getItem('loggedUser');
-        const notLoggedEl = document.getElementById('notLogged');
-        const contentEl = document.getElementById('content');
+        // Utilities
+        function getUsers() {
+            return JSON.parse(localStorage.getItem('users') || '[]');
+        }
+
+        function saveUsers(u) {
+            localStorage.setItem('users', JSON.stringify(u));
+        }
+
+        function getTransactions() {
+            return JSON.parse(localStorage.getItem('transactions') || '[]');
+        }
+
+        function saveTransactions(t) {
+            localStorage.setItem('transactions', JSON.stringify(t));
+        }
+
+        function getLoggedUser() {
+            return localStorage.getItem('loggedUser') || null;
+        }
+
+        function genAffiliateCode() {
+            return 'AFF-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6).toUpperCase();
+        }
+
+        // Navigation helpers
+        var goRegister = document.getElementById('goRegister');
+        var goLogin = document.getElementById('goLogin');
+        if (goRegister) goRegister.addEventListener('click', function() {
+            location.href = 'register.html';
+        });
+        if (goLogin) goLogin.addEventListener('click', function() {
+            location.href = 'login.html';
+        });
+
+        // Capture incoming ?ref=CODE — store pendingRef to localStorage for later registration pages to consume
+        (function captureRef() {
+            try {
+                var p = new URLSearchParams(location.search);
+                var code = p.get('ref');
+                if (code) {
+                    localStorage.setItem('pendingReferral', code);
+                }
+            } catch (e) {}
+        })();
+
+        // Page init
+        var logged = getLoggedUser();
+        var notLoggedEl = document.getElementById('notLogged');
+        var contentEl = document.getElementById('content');
 
         if (!logged) {
             notLoggedEl.style.display = 'block';
@@ -196,143 +248,186 @@
             initAffiliate(logged);
         }
 
-        function genAffiliateCode() {
-            return 'AFF-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6).toUpperCase();
-        }
-
         function initAffiliate(username) {
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            let me = users.find(u => u.username === username);
+            var users = getUsers();
+            var me = users.find(function(u) {
+                return u.username === username;
+            });
 
-            // create user record if not present (defensive)
+            // create record if missing (defensive)
             if (!me) {
                 me = {
-                    username,
+                    username: username,
                     password: '',
                     affiliateCode: genAffiliateCode(),
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    balance: 0
                 };
                 users.push(me);
-                localStorage.setItem('users', JSON.stringify(users));
+                saveUsers(users);
             }
 
             if (!me.affiliateCode) {
                 me.affiliateCode = genAffiliateCode();
-                // persist
-                const idx = users.findIndex(x => x.username === me.username);
+                var idx = users.findIndex(function(u) {
+                    return u.username === me.username;
+                });
                 if (idx !== -1) {
                     users[idx] = me;
-                    localStorage.setItem('users', JSON.stringify(users));
+                    saveUsers(users);
                 }
             }
 
-            const origin = location.origin || (location.protocol + '//' + location.host);
-            const link = origin + '/index.html?ref=' + encodeURIComponent(me.affiliateCode);
+            var origin = location.origin || (location.protocol + '//' + location.host);
+            var link = origin + '/index.html?ref=' + encodeURIComponent(me.affiliateCode);
             document.getElementById('affLink').value = link;
 
-            // build promo message
-            const promoEl = document.getElementById('promo');
-            promoEl.value = promoEl.value.replace('{link}', link);
+            var promoEl = document.getElementById('promo');
+            if (promoEl) promoEl.value = promoEl.value.replace('{link}', link);
 
-            // QR via Google Chart API (quick, public demo)
-            const qrUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=' + encodeURIComponent(link);
+            var qrUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=' + encodeURIComponent(link);
             document.getElementById('qrImg').src = qrUrl;
 
-            // share/copy handlers
-            document.getElementById('copyBtn').addEventListener('click', async() => {
-                try {
-                    await navigator.clipboard.writeText(link);
-                    alert('Link copied to clipboard.');
-                } catch (e) {
-                    alert('Copy failed. Select and copy manually.');
-                }
+            // handlers
+            document.getElementById('copyBtn').addEventListener('click', function() {
+                navigator.clipboard.writeText(link).then(function() {
+                    alert('Link copied');
+                }, function() {
+                    alert('Copy failed');
+                });
             });
-
-            document.getElementById('shareBtn').addEventListener('click', async() => {
+            document.getElementById('shareBtn').addEventListener('click', function() {
                 if (navigator.share) {
-                    try {
-                        await navigator.share({
-                            title: 'Join StakeVault',
-                            text: 'Join me on StakeVault',
-                            url: link
-                        });
-                    } catch (e) {}
+                    navigator.share({
+                        title: 'Join StakeVault',
+                        text: 'Join StakeVault with my link',
+                        url: link
+                    }).catch(function() {});
                 } else {
-                    alert('Share not available on this browser. Use copy or social buttons.');
+                    alert('Share not available — use Copy.');
                 }
             });
 
-            // social
-            const tw = document.getElementById('tw');
-            const tg = document.getElementById('tg');
-            const wa = document.getElementById('wa');
-            const copyMsgBtn = document.getElementById('copyMsg');
-            const dlQr = document.getElementById('dlQr');
+            var tw = document.getElementById('tw'),
+                tg = document.getElementById('tg'),
+                wa = document.getElementById('wa'),
+                copyMsg = document.getElementById('copyMsg'),
+                dlQr = document.getElementById('dlQr'),
+                refreshBtn = document.getElementById('refreshBtn');
 
-            if (tw) tw.addEventListener('click', () => {
-                const text = encodeURIComponent('Join me on StakeVault — earn daily USDT rewards. ');
-                window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(link)}`, '_blank');
+            if (tw) tw.addEventListener('click', function() {
+                var text = encodeURIComponent('Join me on StakeVault — earn daily USDT rewards.');
+                window.open('https://twitter.com/intent/tweet?text=' + text + '&url=' + encodeURIComponent(link), '_blank');
             });
-            if (tg) tg.addEventListener('click', () => {
-                window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join me on StakeVault!')}`, '_blank');
+            if (tg) tg.addEventListener('click', function() {
+                window.open('https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent('Join me on StakeVault!'), '_blank');
             });
-            if (wa) wa.addEventListener('click', () => {
-                window.open(`https://wa.me/?text=${encodeURIComponent('Join StakeVault: ' + link)}`, '_blank');
+            if (wa) wa.addEventListener('click', function() {
+                window.open('https://wa.me/?text=' + encodeURIComponent('Join StakeVault: ' + link), '_blank');
             });
-            if (copyMsgBtn) copyMsgBtn.addEventListener('click', async() => {
-                try {
-                    await navigator.clipboard.writeText(promoEl.value);
-                    alert('Promo message copied.');
-                } catch (e) {
-                    alert('Copy failed.');
-                }
+            if (copyMsg) copyMsg.addEventListener('click', function() {
+                navigator.clipboard.writeText(promoEl.value).then(function() {
+                    alert('Promo copied');
+                }, function() {
+                    alert('Copy failed');
+                });
             });
-
-            // download QR
-            if (dlQr) dlQr.addEventListener('click', () => {
-                const url = qrUrl;
-                const a = document.createElement('a');
-                a.href = url;
+            if (dlQr) dlQr.addEventListener('click', function() {
+                var a = document.createElement('a');
+                a.href = qrUrl;
                 a.download = 'affiliate-qr.png';
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
             });
+            if (refreshBtn) refreshBtn.addEventListener('click', function() {
+                renderReferrals();
+                renderReferrals();
+            });
 
-            // referrals table
-            const referrals = users.filter(u => u.referredBy === me.affiliateCode);
-            renderReferrals(referrals);
+            // render referrals now
+            renderReferrals();
         }
 
-        function renderReferrals(list) {
-            const tbody = document.querySelector('#refTable tbody');
+        function renderReferrals() {
+            var loggedUser = getLoggedUser();
+            if (!loggedUser) return;
+            var users = getUsers();
+            var me = users.find(function(u) {
+                return u.username === loggedUser;
+            });
+            if (!me) return;
+
+            var myCode = me.affiliateCode;
+            var referrals = users.filter(function(u) {
+                return u.referredBy === myCode;
+            });
+
+            // for each referral determine deposit status by searching transactions for Completed deposit with meta.username === referral.username
+            var txs = getTransactions();
+
+            var tbody = document.querySelector('#refTable tbody');
             tbody.innerHTML = '';
-            if (list.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="muted">No referrals yet.</td></tr>';
-            } else {
-                list.forEach(r => {
-                    const deposited = hasMadeDeposit(r.username) ? 'Yes' : 'No';
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${r.username}</td><td>${new Date(r.createdAt||r.date||'').toLocaleString()}</td><td>${deposited}</td>`;
-                    tbody.appendChild(tr);
+
+            var depositedCount = 0;
+            referrals.forEach(function(r) {
+                var completedDeposits = txs.filter(function(t) {
+                    return t.type === 'Deposit' && t.status === 'Completed' && t.meta && t.meta.username === r.username;
                 });
-            }
-            const statsLine = document.getElementById('statsLine');
-            const depositedCount = list.reduce((s, u) => s + (hasMadeDeposit(u.username) ? 1 : 0), 0);
-            if (statsLine) statsLine.innerText = `Total referrals: ${list.length} • Referred deposits: ${depositedCount}`;
+                var deposited = completedDeposits.length > 0;
+                var amount = deposited ? completedDeposits.reduce(function(s, t) {
+                    return s + parseFloat(t.amount);
+                }, 0).toFixed(2) : '';
+                var depositDate = deposited ? new Date(completedDeposits[0].date).toLocaleString() : '';
+                if (deposited) depositedCount++;
+
+                var tr = document.createElement('tr');
+                var tdUser = document.createElement('td');
+                tdUser.textContent = r.username;
+                var tdReg = document.createElement('td');
+                tdReg.textContent = new Date(r.createdAt || '').toLocaleString();
+                var tdDep = document.createElement('td');
+                tdDep.textContent = deposited ? 'Yes' : 'No';
+                var tdAmt = document.createElement('td');
+                tdAmt.textContent = deposited ? amount : '';
+                var tdDate = document.createElement('td');
+                tdDate.textContent = depositDate;
+                tr.appendChild(tdUser);
+                tr.appendChild(tdReg);
+                tr.appendChild(tdDep);
+                tr.appendChild(tdAmt);
+                tr.appendChild(tdDate);
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('statsLine').innerText = 'Total referrals: ' + referrals.length + ' • Referred deposits: ' + depositedCount;
         }
 
-        // detection if referred user made deposits — search transactions by username if stored
-        function hasMadeDeposit(username) {
-            // transactions are stored in localStorage 'transactions' — we don't tie tx to username in core demo.
-            // If you record tx owner in meta.username, check that. Otherwise best-effort: check users[].balance > 0
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const u = users.find(x => x.username === username);
-            if (!u) return false;
-            // check stored balances keyed by username? If your app uses shared 'balance' only, this will be false.
-            // For demo: consider a property u.balance
-            return !!(u.balance && parseFloat(u.balance) > 0);
-        }
+        // Expose small helper to ensure referred user registration writes referredBy from pendingReferral
+        // Use this logic in register.html when creating a user:
+        //   var pending = localStorage.getItem('pendingReferral');
+        //   if (pending) newUser.referredBy = pending; localStorage.removeItem('pendingReferral');
+        //
+        // For convenience, if register/login pages in this project don't implement that, we provide a small helper that other pages can call:
+        window.AffiliateHelpers = {
+            applyPendingReferralTo: function(username) {
+                var pending = localStorage.getItem('pendingReferral');
+                if (!pending) return;
+                var users = getUsers();
+                var idx = users.findIndex(function(u) {
+                    return u.username === username;
+                });
+                if (idx === -1) return;
+                users[idx].referredBy = pending;
+                saveUsers(users);
+                localStorage.removeItem('pendingReferral');
+            }
+        };
+
+        // initial render (in case user logged)
+        (function() {
+            if (getLoggedUser()) renderReferrals();
+        })();
     </script>
 </body>
 
