@@ -1,207 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Register — StakeVault</title>
-    <style>
-        body {
-            font-family: Inter, system-ui, Poppins;
-            margin: 28px;
-            background: #f4f7fb
-        }
-        
-        .card {
-            max-width: 420px;
-            margin: 0 auto;
-            padding: 18px;
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 8px 30px rgba(2, 6, 23, .06)
-        }
-        
-        label {
-            display: block;
-            margin-top: 8px;
-            font-weight: 600
-        }
-        
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 6px;
-            border-radius: 8px;
-            border: 1px solid #e6edf8
-        }
-        
-        button {
-            width: 100%;
-            margin-top: 12px;
-            padding: 10px;
-            border-radius: 8px;
-            border: none;
-            background: #1e90ff;
-            color: #fff;
-            cursor: pointer;
-            font-weight: 700
-        }
-        
-        .small {
-            font-size: 13px;
-            color: #6b7280;
-            margin-top: 8px
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register</title>
 </head>
-
 <body>
-    <div class="card">
-        <h2>Create an account</h2>
+  <h2>Register</h2>
+  <form id="registerForm">
+    <input type="text" id="name" placeholder="Enter name" required><br>
+    <input type="email" id="email" placeholder="Enter email" required><br>
+    <input type="password" id="password" placeholder="Enter password" required><br>
+    <button type="submit">Register</button>
+  </form>
 
-        <label for="username">Username</label>
-        <input id="username" autocomplete="username" />
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
-        <label for="password">Password</label>
-        <input id="password" type="password" autocomplete="new-password" />
+    const firebaseConfig = {
+      apiKey: "AIzaSyBBj6aXHtdRqUyeSUazACqQbsZcTTVLP4U",
+      authDomain: "bobcat-65b3b.firebaseapp.com",
+      projectId: "bobcat-65b3b",
+      storageBucket: "bobcat-65b3b.firebasestorage.app",
+      messagingSenderId: "655074041293",
+      appId: "1:655074041293:web:39d5c2e5191941588cb884",
+      measurementId: "G-PX8EMZSDJY"
+    };
 
-        <label for="refCode">Referral code (optional)</label>
-        <input id="refCode" placeholder="Enter referral code or leave empty" />
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-        <button id="registerBtn">Register</button>
-        <div class="small">If you used a referral link the code will be applied automatically. You can also paste a referral code above.</div>
-    </div>
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-    <script>
-        // localStorage helpers
-        function getUsers() {
-            return JSON.parse(localStorage.getItem('users') || '[]');
-        }
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
 
-        function saveUsers(u) {
-            localStorage.setItem('users', JSON.stringify(u));
-        }
+      try {
+        // Create user in Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
 
-        function genAffiliateCode() {
-            return 'AFF-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6).toUpperCase();
-        }
-
-        // capture ?ref=CODE in URL so visitors using links get pre-filled pendingReferral
-        (function captureRef() {
-            try {
-                const p = new URLSearchParams(location.search);
-                const ref = p.get('ref');
-                if (ref) localStorage.setItem('pendingReferral', ref);
-            } catch (e) {}
-        })();
-
-        document.getElementById('registerBtn').addEventListener('click', function() {
-            const username = (document.getElementById('username').value || '').trim();
-            const password = (document.getElementById('password').value || '').trim();
-            const manualRef = (document.getElementById('refCode').value || '').trim();
-            if (!username || !password) {
-                alert('Enter username and password');
-                return;
-            }
-
-            const users = getUsers();
-            if (users.some(u => u.username === username)) {
-                alert('Username already taken');
-                return;
-            }
-
-            // determine referral code: manual input takes precedence, otherwise pendingReferral from URL
-            const pendingFromUrl = localStorage.getItem('pendingReferral');
-            const appliedRefCode = manualRef || pendingFromUrl || null;
-
-            const affiliateCode = genAffiliateCode();
-            const newUser = {
-                username: username,
-                password: password,
-                affiliateCode: affiliateCode,
-                referredBy: appliedRefCode || null,
-                createdAt: new Date().toISOString(),
-                balance: 0,
-                referrals: []
-            };
-
-            users.push(newUser);
-
-            // if referral code matches an existing user, add referral entry to referrer's referrals (deposited:false)
-            if (appliedRefCode) {
-                const refIdx = users.findIndex(u => u.affiliateCode === appliedRefCode);
-                if (refIdx !== -1) {
-                    users[refIdx].referrals = users[refIdx].referrals || [];
-                    // avoid duplicate entries for same username
-                    const exists = users[refIdx].referrals.some(r => r.username === username);
-                    if (!exists) {
-                        users[refIdx].referrals.push({
-                            username: username,
-                            date: newUser.createdAt,
-                            deposited: false,
-                            depositAt: null,
-                            amount: 0
-                        });
-                    }
-                } else {
-                    // optional: notify that entered referral code is not found (still allow registration)
-                    // alert('Referral code not recognized; registering without referrer.');
-                }
-            }
-
-            saveUsers(users);
-            // clear pendingReferral after applied
-            if (pendingFromUrl) localStorage.removeItem('pendingReferral');
-
-            // log in and redirect
-            localStorage.setItem('loggedUser', username);
-            alert('Registered successfully. You are now logged in.');
-            location.href = 'dashboard.html';
+        // Save user in Firestore
+        await setDoc(doc(db, "users", user.uid), {
+          uid: user.uid,
+          name: name,
+          email: email,
+          createdAt: new Date().toISOString()
         });
-    </script>
 
-<!-- FIREBASE: initialize -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
-  import { getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
-  // Your Firebase config (provided by you)
-  const firebaseConfig = {
-    apiKey: "AIzaSyBBj6aXHtdRqUyeSUazACqQbsZcTTVLP4U",
-    authDomain: "bobcat-65b3b.firebaseapp.com",
-    projectId: "bobcat-65b3b",
-    storageBucket: "bobcat-65b3b.firebasestorage.app",
-    messagingSenderId: "655074041293",
-    appId: "1:655074041293:web:39d5c2e5191941588cb884",
-    measurementId: "G-PX8EMZSDJY"
-  };
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  // Helper functions for register and login pages
-  window.firebaseAuth = auth;
-  window.firebaseDB = db;
-
-  async function handleRegister(email, password) {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    // store minimal user info: email and uid
-    await setDoc(doc(db, "users", user.uid), { email: user.email });
-    return user;
-  }
-
-  async function handleLogin(email, password) {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
-  }
-
-  // Expose to window so page scripts can call
-  window.handleRegister = handleRegister;
-  window.handleLogin = handleLogin;
-</script>
-<!-- END FIREBASE -->
-
+        alert("✅ Registration successful!");
+        window.location.href = "dashboard.html";
+      } catch (error) {
+        alert("❌ Error: " + error.message);
+      }
+    });
+  </script>
 </body>
-
 </html>
