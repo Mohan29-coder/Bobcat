@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Staking - Bobcat</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="sidebar">
+    <h2>USDT <span>Stake</span></h2>
+    <ul>
+      <li><a href="dashboard.html">🏠 Dashboard</a></li>
+      <li><a href="wallet.html">💰 Wallet</a></li>
+      <li><a href="staking.html" class="active">📈 Staking</a></li>
+      <li><a href="login.html" class="logout">🚪 Logout</a></li>
+    </ul>
+  </div>
+
+  <div class="main-content">
+    <header><h1>Staking Plans</h1><p class="small">Activate plans using your available balance. Activation requests will be recorded and processed.</p></header>
+
+    <section class="card">
+      <div><strong>Available Balance:</strong> <span id="balanceDisplay">$0.00</span></div>
+    </section>
+
+    <section class="card">
+      <h2>Available Plans</h2>
+      <div id="plansContainer" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;"></div>
+    </section>
+
+    <section class="card">
+      <h2>Your Active Stakes</h2>
+      <table class="table" id="stakeTable">
+        <thead><tr><th>Level</th><th>Amount</th><th>Reward/day</th><th>Activated At</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, addDoc, getDocs, query, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+const firebaseConfig = {"apiKey": "AIzaSyBBj6aXHtdRqUyeSUazACqQbsZcTTVLP4U", "authDomain": "bobcat-65b3b.firebaseapp.com", "projectId": "bobcat-65b3b", "storageBucket": "bobcat-65b3b.firebasestorage.app", "messagingSenderId": "655074041293", "appId": "1:655074041293:web:39d5c2e5191941588cb884", "measurementId": "G-PX8EMZSDJY"};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// configurable plans (you can change later in code)
+const PLANS = [
+  { level: 1, name: "10 USDT Plan", amount: 10, reward: 0.5 },
+  { level: 2, name: "25 USDT Plan", amount: 25, reward: 1.5 },
+  { level: 3, name: "50 USDT Plan", amount: 50, reward: 3 }
+];
+
+let currentUid = null;
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+  currentUid = user.uid;
+  await loadBalance();
+  renderPlans();
+  await loadStakes();
+});
+
+async function loadBalance() {
+  try {
+    const uref = doc(db, 'users', currentUid);
+    const usnap = await getDoc(uref);
+    const bal = usnap.exists() ? (usnap.data().balance || 0) : 0;
+    document.getElementById('balanceDisplay').innerText = `$${bal.toFixed(2)}`;
+    return bal;
+  } catch (err) {
+    console.error(err);
+    return 0;
+  }
+}
+
+function renderPlans() {
+  const container = document.getElementById('plansContainer');
+  container.innerHTML = '';
+  PLANS.forEach(p => {
+    const card = document.createElement('div');
+    card.style.background = '#fff';
+    card.style.padding = '12px';
+    card.style.borderRadius = '10px';
+    card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+    card.innerHTML = `<h3 style="color:#007bff">${p.name}</h3><p>Amount: $${p.amount}</p><p>Reward/day: $${p.reward}</p>`;
+    const btn = document.createElement('button');
+    btn.innerText = 'Activate';
+    btn.onclick = ()=> activatePlan(p);
+    card.appendChild(btn);
+    container.appendChild(card);
+  });
+}
+
+async function activatePlan(plan) {
+  try {
+    const uref = doc(db, 'users', currentUid);
+    const usnap = await getDoc(uref);
+    const bal = usnap.exists() ? (usnap.data().balance || 0) : 0;
+    if (bal < plan.amount) return alert('Insufficient balance to activate this plan.');
+
+    // Deduct immediately and create stake entry (status Active)
+    const newBal = bal - plan.amount;
+    await updateDoc(uref, { balance: newBal });
+    await addDoc(collection(db, 'users', currentUid, 'stakes'), {
+      level: plan.level,
+      name: plan.name,
+      amount: plan.amount,
+      reward: plan.reward,
+      activatedAt: new Date().toISOString(),
+      lastCredit: new Date().toISOString(),
+      status: 'Active'
+    });
+    alert('Plan activated successfully.');
+    document.getElementById('balanceDisplay').innerText = `$${newBal.toFixed(2)}`;
+    await loadStakes();
+  } catch (err) {
+    console.error(err);
+    alert('Error activating plan: ' + (err.message || err));
+  }
+}
+
+async function loadStakes() {
+  const tbody = document.querySelector('#stakeTable tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="no-data">Loading...</td></tr>';
+  try {
+    const q = query(collection(db, 'users', currentUid, 'stakes'), orderBy('level', 'asc'));
+    const snap = await getDocs(q);
+    const list = [];
+    snap.forEach(d => list.push(d.data()));
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="no-data">No active stakes</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    list.forEach(s => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>Level ${s.level}</td><td>${parseFloat(s.amount).toFixed(2)}</td><td>${parseFloat(s.reward).toFixed(2)}</td><td>${new Date(s.activatedAt).toLocaleString()}</td><td>${s.status||'Active'}</td>`;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = '<tr><td colspan="5" class="no-data">Error loading stakes</td></tr>';
+  }
+}
+</script>
+</body>
+</html>

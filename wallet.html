@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wallet - Bobcat</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="sidebar">
+    <h2>USDT <span>Stake</span></h2>
+    <ul>
+      <li><a href="dashboard.html">🏠 Dashboard</a></li>
+      <li><a href="wallet.html" class="active">💰 Wallet</a></li>
+      <li><a href="staking.html">📈 Staking</a></li>
+      <li><a href="login.html" class="logout">🚪 Logout</a></li>
+    </ul>
+  </div>
+
+  <div class="main-content">
+    <header><h1>Wallet</h1><p class="small">Deposit (USDT) and request withdrawals. Deposits/withdrawals are pending until admin approves.</p></header>
+
+    <section class="card" style="max-width:720px;">
+      <h2>Deposit (USDT)</h2>
+      <p class="small">Send USDT on BSC to the address below. After sending, enter the amount and the BSC TxHash to request credit.</p>
+      <div class="address-copy">
+        <input id="depositAddress" type="text" readonly value="0xABCD1234EFGH5678IJKL9101MNOPQRST">
+        <button onclick="copyAddress()">Copy</button>
+      </div>
+
+      <form id="depositForm">
+        <label>Amount (USDT)</label>
+        <input id="depositAmount" type="number" step="0.01" min="0.01" required />
+        <label>Transaction ID (BSC txHash)</label>
+        <input id="depositTx" type="text" required />
+        <button type="submit">Submit Deposit Request</button>
+      </form>
+    </section>
+
+    <section class="card" style="max-width:720px;">
+      <h2>Withdraw</h2>
+      <form id="withdrawForm">
+        <label>Withdrawal Address (BEP-20)</label>
+        <input id="withdrawAddress" type="text" required />
+        <label>Amount (USDT)</label>
+        <input id="withdrawAmount" type="number" step="0.01" min="1" required />
+        <button type="submit">Request Withdrawal</button>
+      </form>
+      <p class="small">Withdrawals will be processed by admin. Pending withdrawals reduce available balance.</p>
+    </section>
+
+    <section class="card">
+      <h2>Transaction History</h2>
+      <table class="table" id="txTable">
+        <thead><tr><th>Type</th><th>Amount</th><th>Status</th><th>Date</th><th>TxHash</th><th>Wallet</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, orderBy, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+const firebaseConfig = {"apiKey": "AIzaSyBBj6aXHtdRqUyeSUazACqQbsZcTTVLP4U", "authDomain": "bobcat-65b3b.firebaseapp.com", "projectId": "bobcat-65b3b", "storageBucket": "bobcat-65b3b.firebasestorage.app", "messagingSenderId": "655074041293", "appId": "1:655074041293:web:39d5c2e5191941588cb884", "measurementId": "G-PX8EMZSDJY"};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+function copyAddress() {
+  const el = document.getElementById('depositAddress');
+  navigator.clipboard.writeText(el.value).then(()=>alert('Address copied'));
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
+  const uid = user.uid;
+
+  // Load transactions
+  await loadTransactions(uid);
+
+  // Deposit form
+  document.getElementById('depositForm').addEventListener('submit', async (e)=> {
+    e.preventDefault();
+    const amount = parseFloat(document.getElementById('depositAmount').value);
+    const txHash = document.getElementById('depositTx').value.trim();
+    if (!txHash || isNaN(amount) || amount <= 0) {
+      return alert('Enter valid amount and txHash');
+    }
+    try {
+      await addDoc(collection(db, 'users', uid, 'transactions'), {
+        type: 'Deposit',
+        amount: amount,
+        txHash: txHash,
+        status: 'Pending',
+        date: new Date().toISOString()
+      });
+      alert('Deposit request submitted (Pending admin verification)');
+      document.getElementById('depositForm').reset();
+      await loadTransactions(uid);
+    } catch (err) {
+      console.error(err);
+      alert('Error: ' + err.message);
+    }
+  });
+
+  // Withdraw form
+  document.getElementById('withdrawForm').addEventListener('submit', async (e)=> {
+    e.preventDefault();
+    const address = document.getElementById('withdrawAddress').value.trim();
+    const amount = parseFloat(document.getElementById('withdrawAmount').value);
+    if (!address || isNaN(amount) || amount <= 0) {
+      return alert('Enter valid address and amount');
+    }
+    try {
+      await addDoc(collection(db, 'users', uid, 'transactions'), {
+        type: 'Withdraw',
+        amount: amount,
+        wallet: address,
+        status: 'Pending',
+        date: new Date().toISOString()
+      });
+      alert('Withdrawal request submitted (Pending admin approval)');
+      document.getElementById('withdrawForm').reset();
+      await loadTransactions(uid);
+    } catch (err) {
+      console.error(err);
+      alert('Error: ' + err.message);
+    }
+  });
+});
+
+async function loadTransactions(uid) {
+  const tbody = document.querySelector('#txTable tbody');
+  tbody.innerHTML = '<tr><td colspan="6" class="no-data">Loading...</td></tr>';
+  try {
+    const q = query(collection(db, 'users', uid, 'transactions'), orderBy('date', 'desc'));
+    const snap = await getDocs(q);
+    const rows = [];
+    snap.forEach(d=> rows.push(d.data()));
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="no-data">No transactions yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    rows.forEach(tx=> {
+      const tr = document.createElement('tr');
+      const txHash = tx.txHash || '';
+      const wallet = tx.wallet || '';
+      tr.innerHTML = `<td>${tx.type}</td><td>${parseFloat(tx.amount).toFixed(2)}</td><td>${tx.status}</td><td>${new Date(tx.date).toLocaleString()}</td><td class="tx-meta">${txHash}</td><td class="tx-meta">${wallet}</td>`;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = '<tr><td colspan="6" class="no-data">Error loading transactions</td></tr>';
+  }
+}
+</script>
+</body>
+</html>
