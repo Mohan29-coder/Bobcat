@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Staking Plans - USDT Stake</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        .staking-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .plan-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .plan-card h2 {
+            color: #007bff;
+            margin-bottom: 8px;
+        }
+        
+        .plan-card p {
+            color: #555;
+            margin-bottom: 8px;
+        }
+        
+        .plan-card button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .plan-card button[disabled] {
+            opacity: 0.5;
+            cursor: default;
+        }
+        
+        .plan-card button:hover {
+            background: #005fcc;
+        }
+        
+        .stake-list {
+            margin-top: 30px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        th,
+        td {
+            border: 1px solid #cfe2ff;
+            padding: 10px;
+            text-align: left;
+        }
+        
+        th {
+            background: #f0f7ff;
+            color: #007bff;
+        }
+        
+        .balance-line {
+            margin-top: 12px;
+            font-weight: 700;
+            color: #007bff;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>USDT <span>Stake</span></h2>
+        <ul>
+            <li><a href="dashboard.html">🏠 Dashboard</a></li>
+            <li><a href="wallet.html">💰 Wallet</a></li>
+            <li><a href="staking.html" class="active">📈 Staking Plans</a></li>
+            <li><a href="affiliate.html">🤝 Affiliate</a></li>
+            <li><a href="login.html" class="logout">🚪 Logout</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header>
+            <h1>Staking Plans</h1>
+            <p>Choose your plan and earn daily rewards automatically. Plans must be activated in order: 1 → 2 → 3.</p>
+        </header>
+
+        <div class="balance-line">Available Balance: <span id="balanceDisplay">$0.00</span></div>
+
+        <div class="staking-container" id="plansContainer">
+            <!-- plan cards injected by JS -->
+        </div>
+
+        <div class="stake-list">
+            <h2>Your Active Stakes</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Level</th>
+                        <th>Amount (USDT)</th>
+                        <th>Reward/day (USDT)</th>
+                        <th>Activated At</th>
+                        <th>Last Credit</th>
+                    </tr>
+                </thead>
+                <tbody id="stakeTable">
+                    <tr>
+                        <td colspan="5">No active stakes</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Plans configuration (level enforces sequential activation)
+        const PLANS = [{
+            level: 1,
+            name: "10 USDT Plan",
+            amount: 10,
+            reward: 0.5
+        }, {
+            level: 2,
+            name: "50 USDT Plan",
+            amount: 50,
+            reward: 2.5
+        }, {
+            level: 3,
+            name: "100 USDT Plan",
+            amount: 100,
+            reward: 5
+        }];
+
+        // Use general keys (no connected wallet required)
+        const STAKES_KEY = "stakes";
+        const BALANCE_KEY = "balance";
+
+        function getBalance() {
+            return parseFloat(localStorage.getItem(BALANCE_KEY) || "0");
+        }
+
+        function setBalance(v) {
+            localStorage.setItem(BALANCE_KEY, parseFloat(v).toFixed(2));
+            renderBalance();
+        }
+
+        function renderBalance() {
+            document.getElementById("balanceDisplay").innerText = `$${getBalance().toFixed(2)}`;
+        }
+
+        function loadStakesData() {
+            return JSON.parse(localStorage.getItem(STAKES_KEY) || "[]");
+        }
+
+        function saveStakesData(list) {
+            localStorage.setItem(STAKES_KEY, JSON.stringify(list));
+        }
+
+        function isLevelActive(level) {
+            const stakes = loadStakesData();
+            return stakes.some(s => s.level === level);
+        }
+
+        // Sequential activation: level 1 allowed anytime, level >1 requires previous level active
+        function canActivateLevel(level) {
+            if (level === 1) return true;
+            return isLevelActive(level - 1);
+        }
+
+        function stakePlan(level) {
+            const plan = PLANS.find(p => p.level === level);
+            if (!plan) return alert("Invalid plan.");
+
+            if (!canActivateLevel(level)) {
+                return alert(`You must activate Level ${level - 1} first.`);
+            }
+
+            if (isLevelActive(level)) {
+                return alert(`Level ${level} already active.`);
+            }
+
+            let bal = getBalance();
+            if (bal < plan.amount) return alert("Insufficient balance for staking.");
+
+            // Deduct amount and save stake
+            bal -= plan.amount;
+            setBalance(bal);
+
+            const stakes = loadStakesData();
+            const now = new Date().toISOString();
+            stakes.push({
+                level: plan.level,
+                name: plan.name,
+                amount: parseFloat(plan.amount.toFixed(2)),
+                reward: parseFloat(plan.reward.toFixed(2)),
+                activatedAt: now,
+                lastCredit: now
+            });
+            saveStakesData(stakes);
+
+            renderPlans();
+            loadStakes();
+            alert(`Staking activated: ${plan.name}`);
+        }
+
+        // Auto credit daily rewards (24h cycle)
+        function autoCreditRewards() {
+            const stakes = loadStakesData();
+            if (stakes.length === 0) return;
+            let bal = getBalance();
+            const now = new Date();
+
+            let updated = false;
+            stakes.forEach(s => {
+                const last = new Date(s.lastCredit);
+                const diff = now - last;
+                if (diff >= 24 * 60 * 60 * 1000) {
+                    bal += parseFloat(s.reward);
+                    s.lastCredit = now.toISOString();
+                    updated = true;
+                }
+            });
+
+            if (updated) {
+                saveStakesData(stakes);
+                setBalance(bal);
+                loadStakes();
+            }
+        }
+
+        function loadStakes() {
+            const data = loadStakesData();
+            const table = document.getElementById("stakeTable");
+            if (data.length === 0) {
+                table.innerHTML = "<tr><td colspan='5'>No active stakes</td></tr>";
+                return;
+            }
+            table.innerHTML = "";
+            data.sort((a, b) => a.level - b.level).forEach((s) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td>Level ${s.level}</td>
+                                <td>${parseFloat(s.amount).toFixed(2)} USDT</td>
+                                <td>${parseFloat(s.reward).toFixed(2)} USDT</td>
+                                <td>${new Date(s.activatedAt).toLocaleString()}</td>
+                                <td>${new Date(s.lastCredit).toLocaleString()}</td>`;
+                table.appendChild(tr);
+            });
+        }
+
+        // Render plan cards and disable/enable Activate buttons based on sequence & activation
+        function renderPlans() {
+            const container = document.getElementById("plansContainer");
+            container.innerHTML = "";
+            PLANS.forEach(plan => {
+                const card = document.createElement("div");
+                card.className = "plan-card";
+
+                const active = isLevelActive(plan.level);
+                const canActivate = canActivateLevel(plan.level);
+                const btn = document.createElement("button");
+                btn.innerText = active ? (plan.level < 3 ? "Activated" : "Activated") : "Activate";
+                btn.disabled = active || !canActivate;
+                btn.onclick = () => stakePlan(plan.level);
+
+                card.innerHTML = `<h2>${plan.name}</h2>
+                                  <p>Daily Reward: ${plan.reward} USDT</p>`;
+                card.appendChild(btn);
+
+                // Add helper note if locked
+                if (!active && !canActivate) {
+                    const note = document.createElement("p");
+                    note.style.color = "#a00";
+                    note.style.marginTop = "8px";
+                    note.innerText = `Locked — activate Level ${plan.level - 1} first.`;
+                    card.appendChild(note);
+                }
+
+                container.appendChild(card);
+            });
+
+            renderBalance();
+        }
+
+        // initialize
+        renderPlans();
+        loadStakes();
+        autoCreditRewards();
+
+        // run auto credit on page focus as well
+        window.addEventListener('focus', autoCreditRewards);
+    </script>
+</body>
+
+
+</html>

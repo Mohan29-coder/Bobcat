@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>StakeVault — USDT Staking</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+         :root {
+            --primary: #1e90ff;
+            --muted: #6b7280
+        }
+        
+        * {
+            box-sizing: border-box
+        }
+        
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, Segoe UI, Roboto, "Poppins", sans-serif;
+            background: #f4f7fb;
+            color: #0f172a
+        }
+        
+        .wrap {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 24px
+        }
+        
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px
+        }
+        
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+        
+        .logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary), #4fb3ff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 22px
+        }
+        
+        p.lead {
+            margin: 6px 0 0;
+            color: var(--muted)
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px
+        }
+        
+        .btn {
+            background: var(--primary);
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600
+        }
+        
+        .btn.ghost {
+            background: #fff;
+            color: var(--primary);
+            border: 1px solid rgba(30, 144, 255, .12)
+        }
+        
+        .hero {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            margin-top: 28px
+        }
+        
+        .hero .left {
+            flex: 1
+        }
+        
+        .hero .right {
+            flex: 1;
+            display: flex;
+            justify-content: center
+        }
+        
+        .card {
+            background: #fff;
+            padding: 18px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(16, 24, 40, .06)
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            margin-top: 18px
+        }
+        
+        .feature {
+            padding: 14px;
+            border-radius: 10px;
+            background: #fff
+        }
+        
+        .plans-grid {
+            display: flex;
+            gap: 10px;
+            flex-direction: column
+        }
+        
+        .plan {
+            border-radius: 8px;
+            padding: 10px;
+            background: linear-gradient(180deg, #fff, #f9fbff);
+            border: 1px solid #e6f0ff
+        }
+        
+        .plan h4 {
+            margin: 0 0 6px
+        }
+        
+        footer {
+            margin-top: 28px;
+            color: var(--muted);
+            font-size: 13px;
+            text-align: center
+        }
+        /* modal */
+        
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, .5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px
+        }
+        
+        .modal {
+            max-width: 720px;
+            width: 100%;
+            background: #fff;
+            padding: 18px;
+            border-radius: 12px
+        }
+        
+        .modal .modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px
+        }
+        
+        .close {
+            background: transparent;
+            border: none;
+            font-size: 18px;
+            cursor: pointer
+        }
+        
+        @media(max-width:720px) {
+            .hero {
+                flex-direction: column
+            }
+            .hero .right {
+                order: -1
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <header>
+            <div class="brand">
+                <div class="logo">SV</div>
+                <div>
+                    <h1>StakeVault</h1>
+                    <p class="lead">Simple USDT staking — deposit, stake, earn daily rewards. Admin-verified deposits & withdrawals.</p>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn" id="plansBtn">View Staking Plans</button>
+                <button class="btn ghost" id="registerBtn">Register</button>
+                <button class="btn ghost" id="loginBtn">Login</button>
+                <button class="btn" id="dashboardBtn">Dashboard</button>
+            </div>
+        </header>
+
+        <section class="hero">
+            <div class="left">
+                <div class="card">
+                    <h2 style="margin:0 0 8px">Overview</h2>
+                    <p style="margin:0;color:var(--muted)">StakeVault provides on-chain USDT staking (BEP‑20) with tiered plans, admin verification for deposits and withdrawals, an upgrade-path for staking levels, referral rewards and a dashboard to manage funds and stakes. This homepage summarizes
+                        features and guides new users to Register → Login → Dashboard to access the full site.</p>
+
+                    <div class="features" style="margin-top:18px">
+                        <div class="feature">
+                            <strong>Admin Verified Deposits</strong>
+                            <div style="color:var(--muted);margin-top:6px">Submit txHash for verification before funds are credited.</div>
+                        </div>
+                        <div class="feature">
+                            <strong>Withdrawals Pending Approval</strong>
+                            <div style="color:var(--muted);margin-top:6px">Withdraw requests are reviewed by admin; available balance prevents overdraft.</div>
+                        </div>
+                        <div class="feature">
+                            <strong>Sequential Staking Plans</strong>
+                            <div style="color:var(--muted);margin-top:6px">Activate Level 1 → Level 2 → Level 3. Earn daily rewards per plan.</div>
+                        </div>
+                        <div class="feature">
+                            <strong>Transaction History</strong>
+                            <div style="color:var(--muted);margin-top:6px">View deposits, withdrawals, txHash and destination wallet on your history page.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right">
+                <div class="card" style="max-width:420px">
+                    <h3 style="margin-top:0">Quick Start</h3>
+                    <ol style="margin:8px 0 0 18px;color:var(--muted)">
+                        <li>Create an account — Register</li>
+                        <li>Login and deposit USDT (submit txHash)</li>
+                        <li>After admin approval, activate staking plans from Dashboard</li>
+                    </ol>
+                    <div style="margin-top:12px;display:flex;gap:8px">
+                        <button class="btn" id="startRegister">Get Started</button>
+                        <button class="btn ghost" id="learnMore">Learn More</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card" style="margin-top:18px">
+            <h3 style="margin-top:0">Featured Staking Plans (preview)</h3>
+            <div class="plans-grid">
+                <div class="plan">
+                    <h4>Level 1 — 10 USDT</h4>
+                    <div>Daily reward: 0.5 USDT</div>
+                </div>
+                <div class="plan">
+                    <h4>Level 2 — 50 USDT</h4>
+                    <div>Daily reward: 2.5 USDT</div>
+                </div>
+                <div class="plan">
+                    <h4>Level 3 — 100 USDT</h4>
+                    <div>Daily reward: 5 USDT</div>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            © <span id="year"></span> StakeVault — Built for demonstration. Use real backend for production.
+        </footer>
+    </div>
+
+    <!-- Modal: Staking Plans -->
+    <div id="modal" class="modal-backdrop" role="dialog" aria-hidden="true">
+        <div class="modal card" role="document">
+            <div class="modal-head">
+                <strong>Staking Plans</strong>
+                <button class="close" id="closeModal" aria-label="Close">&times;</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+                <div class="plan card">
+                    <h4>Level 1</h4>
+                    <div>Stake 10 USDT • Reward 0.5 USDT/day</div>
+                </div>
+                <div class="plan card">
+                    <h4>Level 2</h4>
+                    <div>Stake 50 USDT • Reward 2.5 USDT/day</div>
+                </div>
+                <div class="plan card">
+                    <h4>Level 3</h4>
+                    <div>Stake 100 USDT • Reward 5 USDT/day</div>
+                </div>
+            </div>
+            <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
+                <button class="btn ghost" id="modalRegister">Register</button>
+                <button class="btn" id="modalLogin">Login</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // basic homepage behavior + navigation guards
+        document.getElementById('year').innerText = new Date().getFullYear();
+
+        const modal = document.getElementById('modal');
+
+        function openModal() {
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        document.getElementById('plansBtn').addEventListener('click', openModal);
+        document.getElementById('closeModal').addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        const goto = (url) => {
+            location.href = url;
+        };
+        document.getElementById('registerBtn').addEventListener('click', () => goto('register.html'));
+        document.getElementById('loginBtn').addEventListener('click', () => goto('login.html'));
+        document.getElementById('startRegister').addEventListener('click', () => goto('register.html'));
+        document.getElementById('modalRegister').addEventListener('click', () => goto('register.html'));
+        document.getElementById('modalLogin').addEventListener('click', () => goto('login.html'));
+        document.getElementById('learnMore').addEventListener('click', openModal);
+
+        // Dashboard button: require login
+        function isLoggedIn() {
+            return !!localStorage.getItem('loggedUser');
+        }
+        document.getElementById('dashboardBtn').addEventListener('click', () => {
+            if (!isLoggedIn()) {
+                if (confirm('You must be logged in to access the dashboard. Go to login page?')) goto('login.html');
+                return;
+            }
+            goto('dashboard.html');
+        });
+
+        // make header reflect current user
+        const currentUser = localStorage.getItem('loggedUser') || null;
+        if (currentUser) {
+            const el = document.querySelector('.brand h1');
+            if (el) el.innerText = 'StakeVault — Welcome, ' + currentUser;
+        }
+    </script>
+</body>
+
+</html>

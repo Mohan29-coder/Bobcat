@@ -1,0 +1,434 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Affiliate — StakeVault</title>
+    <style>
+         :root {
+            --primary: #1e90ff;
+            --muted: #6b7280
+        }
+        
+        body {
+            font-family: Inter, system-ui, Segoe UI, Roboto, Poppins;
+            margin: 24px;
+            background: #f4f7fb;
+            color: #0f172a
+        }
+        
+        .card {
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 18px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 8px 30px rgba(2, 6, 23, .06)
+        }
+        
+        h1 {
+            margin: 0 0 8px
+        }
+        
+        .muted {
+            color: var(--muted)
+        }
+        
+        .row {
+            display: flex;
+            gap: 12px;
+            align-items: center
+        }
+        
+        input[type=text],
+        textarea {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #e6edf8
+        }
+        
+        button {
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: #fff
+        }
+        
+        .btn-ghost {
+            background: #fff;
+            border: 1px solid rgba(30, 144, 255, .12);
+            color: var(--primary)
+        }
+        
+        .section {
+            margin-top: 14px
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px
+        }
+        
+        th,
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+            vertical-align: middle
+        }
+        
+        .small {
+            font-size: 13px;
+            color: var(--muted)
+        }
+        
+        .qr {
+            width: 140px;
+            height: 140px;
+            border-radius: 8px;
+            border: 1px solid #eef6ff;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+        
+        @media(max-width:720px) {
+            .row {
+                flex-direction: column;
+                align-items: stretch
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>Affiliate Program</h1>
+        <div class="small muted">Share your referral link. When someone registers with your code and later completes a deposit, they are listed below.</div>
+
+        <div id="notLogged" class="section" style="display:none">
+            <p class="muted">You must be logged in to view and share your affiliate tools.</p>
+            <div style="display:flex;gap:8px">
+                <button class="btn-primary" id="goRegister">Register</button>
+                <button class="btn-ghost" id="goLogin">Login</button>
+            </div>
+        </div>
+
+        <div id="content" style="display:none">
+            <div class="section">
+                <label><strong>Your affiliate link</strong></label>
+                <div class="row" style="margin-top:8px">
+                    <input id="affLink" type="text" readonly />
+                    <button class="btn-primary" id="copyBtn">Copy</button>
+                    <button class="btn-ghost" id="shareBtn">Share</button>
+                </div>
+                <div class="small section">Tip: share this link. Visitors who register with it will be attributed to you after they deposit.</div>
+            </div>
+
+            <div class="section row" style="align-items:flex-start">
+                <div style="flex:1">
+                    <h3 style="margin:0 0 8px">Quick share</h3>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button id="tw" class="btn-ghost">Twitter</button>
+                        <button id="tg" class="btn-ghost">Telegram</button>
+                        <button id="wa" class="btn-ghost">WhatsApp</button>
+                        <button id="copyMsg" class="btn-ghost">Copy Promo</button>
+                        <button id="refreshBtn" class="btn-ghost">Refresh</button>
+                    </div>
+
+                    <div class="section">
+                        <h4 style="margin:0 0 8px">Promo message</h4>
+                        <textarea id="promo" style="width:100%;min-height:80px;padding:10px;border-radius:8px;border:1px solid #eef6ff">Join me on StakeVault — deposit USDT, stake and earn daily rewards. Register with my link: {link}</textarea>
+                    </div>
+                </div>
+
+                <div style="width:160px;text-align:center">
+                    <h4 style="margin:0 0 8px">QR</h4>
+                    <div class="qr" id="qrWrap"><img id="qrImg" alt="QR" style="max-width:100%;border-radius:6px"></div>
+                    <div style="margin-top:8px;display:flex;gap:8px;justify-content:center">
+                        <button id="dlQr" class="btn-ghost">Download</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3 style="margin:0 0 6px">Referred users</h3>
+                <div class="small muted" id="statsLine">Total referrals: 0 • Referred deposits: 0</div>
+
+                <table id="refTable" class="section">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Registered</th>
+                            <th>Deposited?</th>
+                            <th>Amount</th>
+                            <th>Deposit Date</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Affiliate page (client-only demo).
+        // Data model (localStorage):
+        // users: [{ username, password, affiliateCode, referredBy, createdAt, balance }]
+        // transactions: [{ id, type:'Deposit'|'Withdraw', amount, status:'Pending'|'Completed'|'Rejected', date, meta:{ username, txHash, wallet } }]
+
+        // Utilities
+        function getUsers() {
+            return JSON.parse(localStorage.getItem('users') || '[]');
+        }
+
+        function saveUsers(u) {
+            localStorage.setItem('users', JSON.stringify(u));
+        }
+
+        function getTransactions() {
+            return JSON.parse(localStorage.getItem('transactions') || '[]');
+        }
+
+        function saveTransactions(t) {
+            localStorage.setItem('transactions', JSON.stringify(t));
+        }
+
+        function getLoggedUser() {
+            return localStorage.getItem('loggedUser') || null;
+        }
+
+        function genAffiliateCode() {
+            return 'AFF-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6).toUpperCase();
+        }
+
+        // Navigation helpers
+        var goRegister = document.getElementById('goRegister');
+        var goLogin = document.getElementById('goLogin');
+        if (goRegister) goRegister.addEventListener('click', function() {
+            location.href = 'register.html';
+        });
+        if (goLogin) goLogin.addEventListener('click', function() {
+            location.href = 'login.html';
+        });
+
+        // Capture incoming ?ref=CODE — store pendingRef to localStorage for later registration pages to consume
+        (function captureRef() {
+            try {
+                var p = new URLSearchParams(location.search);
+                var code = p.get('ref');
+                if (code) {
+                    localStorage.setItem('pendingReferral', code);
+                }
+            } catch (e) {}
+        })();
+
+        // Page init
+        var logged = getLoggedUser();
+        var notLoggedEl = document.getElementById('notLogged');
+        var contentEl = document.getElementById('content');
+
+        if (!logged) {
+            notLoggedEl.style.display = 'block';
+            contentEl.style.display = 'none';
+        } else {
+            notLoggedEl.style.display = 'none';
+            contentEl.style.display = 'block';
+            initAffiliate(logged);
+        }
+
+        function initAffiliate(username) {
+            var users = getUsers();
+            var me = users.find(function(u) {
+                return u.username === username;
+            });
+
+            // create record if missing (defensive)
+            if (!me) {
+                me = {
+                    username: username,
+                    password: '',
+                    affiliateCode: genAffiliateCode(),
+                    createdAt: new Date().toISOString(),
+                    balance: 0
+                };
+                users.push(me);
+                saveUsers(users);
+            }
+
+            if (!me.affiliateCode) {
+                me.affiliateCode = genAffiliateCode();
+                var idx = users.findIndex(function(u) {
+                    return u.username === me.username;
+                });
+                if (idx !== -1) {
+                    users[idx] = me;
+                    saveUsers(users);
+                }
+            }
+
+            var origin = location.origin || (location.protocol + '//' + location.host);
+            var link = origin + '/index.html?ref=' + encodeURIComponent(me.affiliateCode);
+            document.getElementById('affLink').value = link;
+
+            var promoEl = document.getElementById('promo');
+            if (promoEl) promoEl.value = promoEl.value.replace('{link}', link);
+
+            var qrUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=' + encodeURIComponent(link);
+            document.getElementById('qrImg').src = qrUrl;
+
+            // handlers
+            document.getElementById('copyBtn').addEventListener('click', function() {
+                navigator.clipboard.writeText(link).then(function() {
+                    alert('Link copied');
+                }, function() {
+                    alert('Copy failed');
+                });
+            });
+            document.getElementById('shareBtn').addEventListener('click', function() {
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Join StakeVault',
+                        text: 'Join StakeVault with my link',
+                        url: link
+                    }).catch(function() {});
+                } else {
+                    alert('Share not available — use Copy.');
+                }
+            });
+
+            var tw = document.getElementById('tw'),
+                tg = document.getElementById('tg'),
+                wa = document.getElementById('wa'),
+                copyMsg = document.getElementById('copyMsg'),
+                dlQr = document.getElementById('dlQr'),
+                refreshBtn = document.getElementById('refreshBtn');
+
+            if (tw) tw.addEventListener('click', function() {
+                var text = encodeURIComponent('Join me on StakeVault — earn daily USDT rewards.');
+                window.open('https://twitter.com/intent/tweet?text=' + text + '&url=' + encodeURIComponent(link), '_blank');
+            });
+            if (tg) tg.addEventListener('click', function() {
+                window.open('https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent('Join me on StakeVault!'), '_blank');
+            });
+            if (wa) wa.addEventListener('click', function() {
+                window.open('https://wa.me/?text=' + encodeURIComponent('Join StakeVault: ' + link), '_blank');
+            });
+            if (copyMsg) copyMsg.addEventListener('click', function() {
+                navigator.clipboard.writeText(promoEl.value).then(function() {
+                    alert('Promo copied');
+                }, function() {
+                    alert('Copy failed');
+                });
+            });
+            if (dlQr) dlQr.addEventListener('click', function() {
+                var a = document.createElement('a');
+                a.href = qrUrl;
+                a.download = 'affiliate-qr.png';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            });
+            if (refreshBtn) refreshBtn.addEventListener('click', function() {
+                renderReferrals();
+                renderReferrals();
+            });
+
+            // render referrals now
+            renderReferrals();
+        }
+
+        function renderReferrals() {
+            var loggedUser = getLoggedUser();
+            if (!loggedUser) return;
+            var users = getUsers();
+            var me = users.find(function(u) {
+                return u.username === loggedUser;
+            });
+            if (!me) return;
+
+            var myCode = me.affiliateCode;
+            var referrals = users.filter(function(u) {
+                return u.referredBy === myCode;
+            });
+
+            // for each referral determine deposit status by searching transactions for Completed deposit with meta.username === referral.username
+            var txs = getTransactions();
+
+            var tbody = document.querySelector('#refTable tbody');
+            tbody.innerHTML = '';
+
+            var depositedCount = 0;
+            referrals.forEach(function(r) {
+                var completedDeposits = txs.filter(function(t) {
+                    return t.type === 'Deposit' && t.status === 'Completed' && t.meta && t.meta.username === r.username;
+                });
+                var deposited = completedDeposits.length > 0;
+                var amount = deposited ? completedDeposits.reduce(function(s, t) {
+                    return s + parseFloat(t.amount);
+                }, 0).toFixed(2) : '';
+                var depositDate = deposited ? new Date(completedDeposits[0].date).toLocaleString() : '';
+                if (deposited) depositedCount++;
+
+                var tr = document.createElement('tr');
+                var tdUser = document.createElement('td');
+                tdUser.textContent = r.username;
+                var tdReg = document.createElement('td');
+                tdReg.textContent = new Date(r.createdAt || '').toLocaleString();
+                var tdDep = document.createElement('td');
+                tdDep.textContent = deposited ? 'Yes' : 'No';
+                var tdAmt = document.createElement('td');
+                tdAmt.textContent = deposited ? amount : '';
+                var tdDate = document.createElement('td');
+                tdDate.textContent = depositDate;
+                tr.appendChild(tdUser);
+                tr.appendChild(tdReg);
+                tr.appendChild(tdDep);
+                tr.appendChild(tdAmt);
+                tr.appendChild(tdDate);
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('statsLine').innerText = 'Total referrals: ' + referrals.length + ' • Referred deposits: ' + depositedCount;
+        }
+
+        // Expose small helper to ensure referred user registration writes referredBy from pendingReferral
+        // Use this logic in register.html when creating a user:
+        //   var pending = localStorage.getItem('pendingReferral');
+        //   if (pending) newUser.referredBy = pending; localStorage.removeItem('pendingReferral');
+        //
+        // For convenience, if register/login pages in this project don't implement that, we provide a small helper that other pages can call:
+        window.AffiliateHelpers = {
+            applyPendingReferralTo: function(username) {
+                var pending = localStorage.getItem('pendingReferral');
+                if (!pending) return;
+                var users = getUsers();
+                var idx = users.findIndex(function(u) {
+                    return u.username === username;
+                });
+                if (idx === -1) return;
+                users[idx].referredBy = pending;
+                saveUsers(users);
+                localStorage.removeItem('pendingReferral');
+            }
+        };
+
+        // initial render (in case user logged)
+        (function() {
+            if (getLoggedUser()) renderReferrals();
+        })();
+    </script>
+</body>
+
+</html>
