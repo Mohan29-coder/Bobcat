@@ -1,173 +1,32 @@
-/* 🌐 Global Theme - Blue & White */
 
-body {
-    margin: 0;
-    font-family: "Poppins", sans-serif;
-    background-color: #f3f6fb;
-    color: #222;
-    display: flex;
+:root{
+  --bg:#ffffff;
+  --primary:#007bff;
+  --muted:#6b7280;
+  --card:#f8fbff;
+  --sidebar:#ffffff;
 }
-
-
-/* Sidebar */
-
-.sidebar {
-    width: 230px;
-    background-color: #ffffff;
-    height: 100vh;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
-    position: fixed;
-    left: 0;
-    top: 0;
-    padding: 20px;
+*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+body{margin:0;background:linear-gradient(180deg,#f7fbff, #ffffff);color:#111;}
+.sidebar{
+  width:220px;position:fixed;top:0;left:0;bottom:0;background:var(--sidebar);border-right:1px solid #eef2ff;padding:20px;
 }
-
-.sidebar h2 {
-    color: #007bff;
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-.sidebar ul {
-    list-style: none;
-    padding: 0;
-}
-
-.sidebar ul li {
-    margin: 15px 0;
-}
-
-.sidebar ul li a {
-    text-decoration: none;
-    color: #333;
-    font-weight: 500;
-    display: block;
-    padding: 10px;
-    border-radius: 8px;
-    transition: 0.3s;
-}
-
-.sidebar ul li a:hover,
-.sidebar ul li a.active {
-    background-color: #007bff;
-    color: #fff;
-}
-
-
-/* Main Section */
-
-.main-content {
-    margin-left: 250px;
-    padding: 30px;
-    width: calc(100% - 250px);
-}
-
-header h1 {
-    color: #007bff;
-    margin-bottom: 5px;
-}
-
-header p {
-    color: #555;
-}
-
-
-/* Cards & Sections */
-
-.card,
-.wallet-card,
-.referral-card,
-.commission-card {
-    background-color: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-
-/* Buttons */
-
-button {
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    padding: 10px 18px;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-button:hover {
-    background-color: #005fcc;
-}
-
-
-/* Inputs */
-
-input {
-    width: 100%;
-    padding: 10px;
-    margin-top: 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    background-color: #fff;
-    color: #333;
-}
-
-
-/* Wallet Layout */
-
-.wallet-actions {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-.wallet-balance {
-    background-color: #007bff;
-    color: #fff;
-    padding: 15px;
-    border-radius: 10px;
-    text-align: center;
-    margin-top: 20px;
-}
-
-
-/* Transaction Table */
-
-.transaction-history table,
-.referral-list table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-}
-
-.transaction-history th,
-.transaction-history td,
-.referral-list th,
-.referral-list td {
-    border: 1px solid #ddd;
-    padding: 10px;
-    text-align: center;
-}
-
-.transaction-history th,
-.referral-list th {
-    background-color: #007bff;
-    color: #fff;
-}
-
-
-/* Responsive */
-
-@media (max-width: 768px) {
-    .main-content {
-        margin-left: 0;
-        width: 100%;
-    }
-    .sidebar {
-        display: none;
-    }
-}
+.sidebar h2{margin:0;font-size:20px;color:var(--primary);}
+.sidebar h2 span{font-weight:700;color:#0b5ed7;}
+.sidebar ul{list-style:none;padding:18px 0 0;margin:0;}
+.sidebar ul li{margin-bottom:12px;}
+.sidebar ul li a{color:#0b1530;text-decoration:none;padding:8px 10px;border-radius:8px;display:block;}
+.sidebar ul li a.active{background:#f0f7ff;color:var(--primary);font-weight:600;}
+.main-content{margin-left:240px;padding:28px;}
+.card{background:var(--card);padding:18px;border-radius:12px;margin-bottom:18px;box-shadow:0 2px 6px rgba(10,20,50,0.03);}
+button{background:var(--primary);color:white;padding:10px 12px;border-radius:8px;border:0;cursor:pointer;}
+input, select{padding:10px;border-radius:8px;border:1px solid #e6eefc;width:100%;margin:6px 0 12px;}
+h1,h2{margin:0 0 8px 0;}
+header p{color:var(--muted);margin-top:6px;}
+#userInfo{font-size:16px;color:#0b2a52;margin-bottom:8px;}
+.tx-amount{text-align:right;font-weight:700;}
+.tx-meta{font-size:12px;color:#6b7280;word-break:break-all;}
+.no-data{color:#666;text-align:center;}
+form.inline{display:flex;gap:10px;align-items:center;}
+.small{font-size:13px;color:var(--muted);}
+.logout{color:#d00;}

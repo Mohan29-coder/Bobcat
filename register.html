@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Register - Bobcat</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="sidebar">
+    <h2>USDT <span>Stake</span></h2>
+    <ul>
+      <li><a href="dashboard.html">🏠 Dashboard</a></li>
+      <li><a href="login.html" class="active">🔑 Login</a></li>
+    </ul>
+  </div>
+
+  <div class="main-content">
+    <header><h1>Create Account</h1><p class="small">Sign up to start staking.</p></header>
+
+    <section class="card" style="max-width:560px;">
+      <form id="registerForm">
+        <label class="small">Full name</label>
+        <input id="name" type="text" placeholder="Your name" required />
+        <label class="small">Email</label>
+        <input id="email" type="email" placeholder="you@example.com" required />
+        <label class="small">Password</label>
+        <input id="password" type="password" placeholder="Choose a strong password" required />
+        <button type="submit">Create account</button>
+      </form>
+      <p class="small" style="margin-top:12px;">Already have an account? <a href="login.html">Login</a></p>
+    </section>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+const firebaseConfig = {"apiKey": "AIzaSyBBj6aXHtdRqUyeSUazACqQbsZcTTVLP4U", "authDomain": "bobcat-65b3b.firebaseapp.com", "projectId": "bobcat-65b3b", "storageBucket": "bobcat-65b3b.firebasestorage.app", "messagingSenderId": "655074041293", "appId": "1:655074041293:web:39d5c2e5191941588cb884", "measurementId": "G-PX8EMZSDJY"};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const form = document.getElementById("registerForm");
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+
+  try {
+    const userCred = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCred.user;
+    // Create user document with initial balance 0 and empty transactions
+    await setDoc(doc(db, "users", user.uid), {
+      uid: user.uid,
+      name: name,
+      email: email,
+      balance: 0,
+      createdAt: new Date().toISOString()
+    });
+    alert("Registration successful! Please login.");
+    window.location.href = "login.html";
+  } catch (err) {
+    console.error(err);
+    alert("Error: " + (err.message || err));
+  }
+});
+</script>
+</body>
+</html>
